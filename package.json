@@ -1,0 +1,52 @@
+{
+  "private": true,
+  "name": "changelog-generator",
+  "version": "2.4.1",
+  "description": "a changelog generator focused on flexibility and ease of use",
+  "author": "Kong <office@konghq.com>",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=16.14.0",
+    "yarn": "^1.22.17"
+  },
+  "bin": {
+    "changelog-generator": "./dist/index.js"
+  },
+  "bugs": {
+    "url": "https://github.com/Kong/changelog-generator/issues"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "start": "esr src/cli.ts generate",
+    "lint": "eslint . --ext .js,.ts,.tsx --cache",
+    "lint:fix": "npm run lint -- --fix",
+    "test": "jest",
+    "clean": "tsc --build tsconfig.build.json --clean",
+    "prebuild": "npm run clean",
+    "build": "tsc --build tsconfig.build.json"
+  },
+  "dependencies": {
+    "ramda": "^0.28.0",
+    "ramda-adjunct": "3.0.0"
+  },
+  "devDependencies": {
+    "@octokit/rest": "^18.12.0",
+    "@octokit/types": "^6.34.0",
+    "@types/eslint": "8.4.1",
+    "@types/jest": "^27.4.0",
+    "@types/ramda": "^0.27.64",
+    "@typescript-eslint/eslint-plugin": "^5.12.0",
+    "@typescript-eslint/parser": "^5.12.0",
+    "commander": "^9.0.0",
+    "esbuild": "^0.14.21",
+    "esbuild-runner": "^2.2.1",
+    "eslint": "^8.9.0",
+    "eslint-config-helpers": "^1.1.0",
+    "eslint-plugin-simple-import-sort": "^7.0.0",
+    "jest": "^27.5.1",
+    "ts-jest": "^27.1.3",
+    "type-fest": "^2.11.2",
+    "typescript": "^4.5.5"
+  }
+}
