@@ -1,6 +1,6 @@
 {
   "name": "@kong/changelog-generator",
-  "version": "0.0.1",
+  "version": "v0.0.2",
   "description": "a changelog generator focused on flexibility and ease of use",
   "author": "Kong <office@konghq.com>",
   "license": "Apache-2.0",
