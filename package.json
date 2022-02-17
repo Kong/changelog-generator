@@ -28,18 +28,18 @@
     "build": "tsc --build tsconfig.build.json"
   },
   "dependencies": {
+    "@octokit/rest": "^18.12.0",
+    "commander": "^9.0.0",
     "ramda": "^0.28.0",
     "ramda-adjunct": "3.0.0"
   },
   "devDependencies": {
-    "@octokit/rest": "^18.12.0",
     "@octokit/types": "^6.34.0",
     "@types/eslint": "8.4.1",
     "@types/jest": "^27.4.0",
     "@types/ramda": "^0.27.64",
     "@typescript-eslint/eslint-plugin": "^5.12.0",
     "@typescript-eslint/parser": "^5.12.0",
-    "commander": "^9.0.0",
     "esbuild": "^0.14.21",
     "esbuild-runner": "^2.2.1",
     "eslint": "^8.9.0",
