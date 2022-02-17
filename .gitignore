@@ -4,3 +4,4 @@ dist
 *.tsbuildinfo
 .eslintcache
 coverage
+kong-changelog-generator-*.tgz
