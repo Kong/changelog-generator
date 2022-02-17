@@ -27,17 +27,16 @@
 
 <!-- markdownlint-disable-next-line MD038 -->
 1. Add a line beginning with `changelog: ` to any Pull Requests you would like to be included in the changelog.  The remainder of this line will be used to generate a changelog for that Pull Request's changes.
-1. Have a [GitHub Auth Token](https://github.com/settings/tokens) with the `public_repo` permission.
-1. install dependencies. run
-  
+1. Have a [GitHub Auth Token](https://github.com/settings/tokens) with the `public_repo` permission.  Set this token to the `GITHUB_TOKEN` environment variable (or pass in with `--githubToken <YOUR TOKEN>` below).  (**Note**: add a space before `export` to keep it from being in your terminal history)
+
     ```console
-    yarn
+     export GITHUB_TOKEN=<YOUR TOKEN>
     ```
 
 1. run this (but filling in your own data)
 
     ```console
-    yarn start --owner Kong --repo insomnia --base v1.1.3 --head e64aa81 --releaseName "v1.2.0 - Cool New features!"
+    npx @kong/changelog-generator generate --owner Kong --repo insomnia --base v1.1.3 --head v1.1.4 --releaseName "v1.2.0 - Cool New features!"
     ```
 
    - `owner` is the GitHub organization
