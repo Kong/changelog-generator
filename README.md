@@ -20,11 +20,12 @@
     - [Why not write it by hand before every release?](#why-not-write-it-by-hand-before-every-release)
   - [FAQ](#faq)
     - [Help! I'm getting rate limited by GitHub](#help-im-getting-rate-limited-by-github)
+    - [What if I have multiple PRs for one change](#what-if-i-have-multiple-prs-for-one-change)
 
 ## Quick Start Guide
 
 <!-- markdownlint-disable-next-line MD038 -->
-1. Add a line beginning with `changelog: ` to any Pull Requests you would like to be included in the changelog.  The remainder of this line will be used to generate a changelog a Pull Request's changes.
+1. Add a line beginning with `changelog: ` to any Pull Requests you would like to be included in the changelog.  The remainder of this line will be used to generate a changelog for that Pull Request's changes.
 1. Have a [GitHub Auth Token](https://github.com/settings/tokens) with the `public_repo` permission.
 1. install dependencies. run
   
@@ -43,6 +44,8 @@
    - `base` is a git ref (in this example, a pre-existing git tag) where the script will start searching, inclusively
    - `head` is a git ref (in this example, a commit hash) where the script will stop searching, inclusively
    - `releaseName` is the name of your release, and will appear on the first line of the changelog
+
+[Here is an example](https://github.com/Kong/insomnia/releases/tag/core%402022.1.0-beta.0) of the generated output.
 
 ## General Principles
 
@@ -126,7 +129,7 @@ Wanna see what it would do in a certain scenario?  Write a new test.
 1. Run the script (from this package):
 
     ```console
-    npm run start -- --base core@2021.7.2 --head core@2022.1.0 --releaseName core@2022.1.0
+    yarn start --base core@2021.7.2 --head core@2022.1.0 --releaseName core@2022.1.0
     ```
 
 - `--base` is the oldest git ref you'd like the tool to search from, inclusively.
@@ -140,7 +143,7 @@ Do you have this sinking feeling that there's some PR that was simply missed at 
 Run the same thing as above, but just add `--onlyShowMissing`, e.g.:
 
 ```console
-npm run start -- --base core@2021.7.2 --head core@2022.1.0 --releaseName core@2022.1.0 --onlyShowMissing
+yarn start --base core@2021.7.2 --head core@2022.1.0 --releaseName core@2022.1.0 --onlyShowMissing
 ```
 
 Adding that flag will look at the same commits as before, but will instead show you all the commits that do _not_ have a changelog entry.  That way, you can click through the PRs and just verify that nothing important was missed.
@@ -170,3 +173,13 @@ This tool tries to find the _path of least resistance_ for generating quality ch
 ### Help! I'm getting rate limited by GitHub
 
 Just wait a minute or two and try again, it has been our experience that if you quickly run the script in quick succession this can happen, but otherwise it can run once just fine.  File a GitHub issue if you still have trouble after waiting.
+
+### What if I have multiple PRs for one change
+
+Admittedly, this is something the script doesn't know much about, but there's an easy way to accomplish it, all the same.
+
+Say your user, `@githubuser` has two PRs, `#1` and `#2` that I want to appear on the same changelog line.  Edit the PR description of PR #2 to read `changelog: some change (#1)`.  That means when the PR is picked up by the script it'll get transformed into `- some change (#1) (#2) @githubuser`.
+
+If you want to assign different authorship.  For example, you can do `changelog: some change (#1) @someotheruser` which will be transformed into `- some change (#1) @someotheruser (#2) @githubuser`.
+
+It's a bit of a hack, but it works.  If this script becomes more advanced in the future, I'd expect this is something it might start more systematically handling.  If you have ideas for how you'd like this to work please feel free to open a GitHub issue.
