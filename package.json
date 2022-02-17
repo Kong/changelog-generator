@@ -1,5 +1,4 @@
 {
-  "private": true,
   "name": "@kong/changelog-generator",
   "version": "0.0.1",
   "description": "a changelog generator focused on flexibility and ease of use",
