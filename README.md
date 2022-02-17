@@ -21,6 +21,7 @@
   - [FAQ](#faq)
     - [Help! I'm getting rate limited by GitHub](#help-im-getting-rate-limited-by-github)
     - [What if I have multiple PRs for one change](#what-if-i-have-multiple-prs-for-one-change)
+    - [How do I release this project](#how-do-i-release-this-project)
 
 ## Quick Start Guide
 
@@ -183,3 +184,9 @@ Say your user, `@githubuser` has two PRs, `#1` and `#2` that I want to appear on
 If you want to assign different authorship.  For example, you can do `changelog: some change (#1) @someotheruser` which will be transformed into `- some change (#1) @someotheruser (#2) @githubuser`.
 
 It's a bit of a hack, but it works.  If this script becomes more advanced in the future, I'd expect this is something it might start more systematically handling.  If you have ideas for how you'd like this to work please feel free to open a GitHub issue.
+
+### How do I release this project
+
+1. update the package.json's `version` field with the version you'd like to release
+1. open and merge a PR for that change
+1. tag the `main` branch with a semver tag beginning with `v` followed by the version in the package.json, e.g. `v0.0.1` and push the tag to `origin`
