@@ -1,5 +1,5 @@
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
-import { any, flatten, groupBy, head, join, map, mergeAll, pipe, reduce, reject, sort, sortBy, take, toPairs, uniq } from 'ramda';
+import { flatten, groupBy, head, join, map, mergeAll, pipe, reduce, reject, sort, sortBy, take, toPairs, uniq } from 'ramda';
 import { compact } from 'ramda-adjunct';
 import { Entries } from 'type-fest';
 
@@ -38,15 +38,6 @@ type AuthorHandle = `@${string}`;
 export const getAuthorHandles = ({ author }: ResponseCommit) => (
   author && author.login ? [`@${author.login}`] as AuthorHandle[] : null
 );
-
-// TODO: make this configurable by the end user
-const ignoreCommitMessagePatterns = [
-  /Merge branch 'release/,
-];
-
-export const shouldIgnoreCommit = ({ commit }: ResponseCommit) => any(regex => (
-  regex.test(commit.message)
-), ignoreCommitMessagePatterns);
 
 export const uniqueAuthors: (responseCommits: ResponseCommit[]) => AuthorHandle[] = pipe(
   map(getAuthorHandles),
@@ -88,12 +79,14 @@ export const compareCommits = async ({
   head,
   owner,
   repo,
+  ignoreCommitPatterns,
 }: {
   octokit: Octokit;
   base: string;
   head: string;
   owner: string;
   repo: string;
+  ignoreCommitPatterns: RegExp[];
 }) => {
   const { repos: { compareCommitsWithBasehead }, paginate } = octokit;
   const pages = paginate.iterator(compareCommitsWithBasehead, {
@@ -111,7 +104,9 @@ export const compareCommits = async ({
     if (commitsItems.length === 0) {
       throw notFound;
     }
-    return reject(shouldIgnoreCommit, commitsItems);
+    return reject((commit: ResponseCommit): boolean => {
+      return ignoreCommitPatterns.some((re) => re.test(commit.commit.message));
+    }, commitsItems);
   } catch (error: unknown) {
     throw notFound;
   }

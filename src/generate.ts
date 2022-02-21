@@ -40,6 +40,12 @@ export const generateCommand = createCommand('generate')
     '--onlyShowMissing',
     'only show commits that are missing a changelog (useful for verifying we didn\'t miss one)'
   )
+  .option(
+    '--ignoreCommitPattern <commit regexps>',
+    'A comma separated list of commit regexps to ignore',
+    (input: string, previous: RegExp[]): RegExp[] => { previous.push(RegExp(input)); return previous; },
+    [],
+  )
   .action(async (_, command: Command) => {
     const {
       base,
@@ -49,6 +55,7 @@ export const generateCommand = createCommand('generate')
       owner,
       releaseName,
       repo,
+      ignoreCommitPattern,
     } = command.opts();
 
     if (!githubToken) {
@@ -63,6 +70,7 @@ export const generateCommand = createCommand('generate')
       base,
       head,
       octokit,
+      ignoreCommitPatterns: ignoreCommitPattern || [/Merge branch 'release/],
     });
 
     const { changelogLines, missingChanges } = await fetchChanges({

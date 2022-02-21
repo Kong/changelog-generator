@@ -13,31 +13,8 @@ import {
   groupChanges,
   PullsResponse,
   ResponseCommit,
-  shouldIgnoreCommit,
   uniqueAuthors,
 } from './utils';
-
-describe('shouldIgnoreCommit', () => {
-  it('it will ignore release commits', () => {
-    const commit = {
-      commit: {
-        message: 'Merge branch \'release/2021.7.2\' into develop',
-      },
-    } as ResponseCommit;
-
-    expect(shouldIgnoreCommit(commit)).toEqual(true);
-  });
-
-  it('it will not ignore other commits commits', () => {
-    const commit = {
-      commit: {
-        message: 'The same thing we do every night, Pinky.',
-      },
-    } as ResponseCommit;
-
-    expect(shouldIgnoreCommit(commit)).toEqual(false);
-  });
-});
 
 describe('extractChangelog', () => {
   const result = 'Fixed an issue with xyz.';
@@ -271,6 +248,7 @@ describe('compareCommits', () => {
     head: 'b',
     owner: '',
     repo: '',
+    ignoreCommitPatterns: [/Merge branch 'release/],
   };
 
   it('throws an error if the commits are not found', async () => {
@@ -325,6 +303,59 @@ describe('compareCommits', () => {
     const commits = await compareCommits({ octokit, ...commitInfo });
     const messages = map(path(['commit', 'message']), commits);
     expect(messages).toEqual(['c', 'd']);
+  });
+
+  it('it will ignore filtered commits', async () => {
+    const octokit = {
+      repos: { compareCommitsWithBasehead: {} },
+      paginate: {
+        iterator: () => ({
+          async* [Symbol.asyncIterator]() {
+            yield { data: { commits: [{ commit: { message: "Merge branch 'release/2021.7.2' into develop" } }] } };
+          },
+        }),
+      },
+    } as unknown as Octokit;
+
+    const commits = await compareCommits({ octokit, ...commitInfo });
+    expect(commits).toHaveLength(0);
+  });
+
+  it('it will not ignore other commits commits', async () => {
+    const octokit = {
+      repos: { compareCommitsWithBasehead: {} },
+      paginate: {
+        iterator: () => ({
+          async* [Symbol.asyncIterator]() {
+            yield { data: { commits: [{ commit: { message: 'The same thing we do every night, Pinky.' } }] } };
+          },
+        }),
+      },
+    } as unknown as Octokit;
+
+    const commits = await compareCommits({ octokit, ...commitInfo });
+    const messages = map(path(['commit', 'message']), commits);
+    expect(messages).toEqual(['The same thing we do every night, Pinky.']);
+  });
+
+  it('it will filter some commits with multiple filter', async () => {
+    const octokit = {
+      repos: { compareCommitsWithBasehead: {} },
+      paginate: {
+        iterator: () => ({
+          async* [Symbol.asyncIterator]() {
+            yield { data: { commits: [{ commit: { message: 'a' } }] } };
+            yield { data: { commits: [{ commit: { message: 'b' } }] } };
+            yield { data: { commits: [{ commit: { message: 'bc' } }] } };
+            yield { data: { commits: [{ commit: { message: 'd' } }] } };
+          },
+        }),
+      },
+    } as unknown as Octokit;
+
+    const commits = await compareCommits({ octokit, ...commitInfo, ignoreCommitPatterns: [/a/, /b/]});
+    const messages = map(path(['commit', 'message']), commits);
+    expect(messages).toEqual(['d']);
   });
 });
 
