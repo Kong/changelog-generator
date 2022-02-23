@@ -15,6 +15,7 @@
   - [Example Usage](#example-usage)
     - [Generating a changelog](#generating-a-changelog-1)
     - [Double checking commits without changelogs](#double-checking-commits-without-changelogs)
+    - [Ignoring Commits](#ignoring-commits)
   - [Other approaches](#other-approaches)
     - [Why not use a CHANGELOG.md?](#why-not-use-a-changelogmd)
     - [Why not write it by hand before every release?](#why-not-write-it-by-hand-before-every-release)
@@ -36,7 +37,7 @@
 1. run this (but filling in your own data)
 
     ```console
-    npx @kong/changelog-generator generate --owner Kong --repo insomnia --base v1.1.3 --head v1.1.4 --releaseName "v1.2.0 - Cool New features!"
+    npx @kong/changelog-generator generate --owner Kong --repo insomnia --base v1.1.3 --head v1.2.0 --releaseName "v1.2.0 - Cool New features!"
     ```
 
    - `owner` is the GitHub organization
@@ -149,6 +150,27 @@ yarn start --base core@2021.7.2 --head core@2022.1.0 --releaseName core@2022.1.0
 Adding that flag will look at the same commits as before, but will instead show you all the commits that do _not_ have a changelog entry.  That way, you can click through the PRs and just verify that nothing important was missed.
 
 If you find a PR that was missed, you simply edit the PR description to include a changelog line (like normal) and run the script again.  Presto-changeo!  All fixed.
+
+### Ignoring Commits
+
+There's another CLI option, `--ignoreCommitPattern` which can be used to supply a regular expression.  This regular expression will be applied to commit messages.  If there's a match, then the commit will be ignored.  This works for the `--onlyShowMissing` option as well.
+
+If you have more than one regex you'd like to apply, then simply specify the command multiple times.  In this example, we are ignoring all commits that start with `🚀` and all commits that start with `chore:`
+
+```console
+npx @kong/changelog-generator generate \
+  --owner Kong \
+  --repo insomnia \
+  --base v1.1.3 \
+  --head v1.2.0 \
+  --releaseName "v1.2.0 - Cool New features!" \
+  --ignoreCommitPattern ^🚀 \
+  --ignoreCommitPattern ^[cC]hore: \
+```
+
+> Note: this "specify the flag multiple times" CLI API instead of something like comma separated (or space separated) commands because regular expressions can (and often, do) include things like spaces and commas.  This API is simpler, then, in the sense that it does not parse the input to try to separate multiple regular expressions from a single string (even if comma separated) input.
+
+If nothing is supplied for this argument, it will default to `Merge branch '`, which is common for merge commits directly into your main branch.  These empty commits are often of no value for changelogs (and are especially noisy with the `--onlyShowMissing` option enabled).  If you want to disable this default, you can supply a regex that will match nothing (e.g. `(?!)` or `$^`).  If this feels like a hack to you or bothers you, please suggest a solution and your use-case in a new GitHub issue.
 
 ## Other approaches
 

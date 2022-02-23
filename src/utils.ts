@@ -1,5 +1,5 @@
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
-import { flatten, groupBy, head, join, map, mergeAll, pipe, reduce, reject, sort, sortBy, take, toPairs, uniq } from 'ramda';
+import { any, flatten, groupBy, head, join, map, mergeAll, pipe, reduce, reject, sort, sortBy, take, toPairs, uniq } from 'ramda';
 import { compact } from 'ramda-adjunct';
 import { Entries } from 'type-fest';
 
@@ -12,6 +12,9 @@ export type PullsResponse = Pick<
   | 'body'
   | 'html_url'
 >;
+
+
+export const DEFAULT_IGNORE_REGEXS = [/Merge branch '/];
 
 /** look for the first occurance of `changelog:` at the beginning of a line, case insensitive */
 export const extractChangelog = (input: string | null | undefined) => {
@@ -37,6 +40,10 @@ type AuthorHandle = `@${string}`;
 
 export const getAuthorHandles = ({ author }: ResponseCommit) => (
   author && author.login ? [`@${author.login}`] as AuthorHandle[] : null
+);
+
+export const shouldIgnoreCommit = (ignoreCommitPatterns: RegExp[]) => ({ commit }: ResponseCommit) => (
+  any(regexp => regexp.test(commit.message), ignoreCommitPatterns)
 );
 
 export const uniqueAuthors: (responseCommits: ResponseCommit[]) => AuthorHandle[] = pipe(
@@ -104,9 +111,7 @@ export const compareCommits = async ({
     if (commitsItems.length === 0) {
       throw notFound;
     }
-    return reject((commit: ResponseCommit): boolean => {
-      return ignoreCommitPatterns.some((re) => re.test(commit.commit.message));
-    }, commitsItems);
+    return reject(shouldIgnoreCommit(ignoreCommitPatterns), commitsItems);
   } catch (error: unknown) {
     throw notFound;
   }

@@ -4,6 +4,7 @@ import { map, path } from 'ramda';
 import {
   ChangelogLine,
   compareCommits,
+  DEFAULT_IGNORE_REGEXS,
   extractChangelog,
   fetchChanges,
   formattedDate,
@@ -13,8 +14,41 @@ import {
   groupChanges,
   PullsResponse,
   ResponseCommit,
+  shouldIgnoreCommit,
   uniqueAuthors,
 } from './utils';
+
+describe('shouldIgnoreCommit', () => {
+  it('it will ignore release commits by default', () => {
+    const commit = {
+      commit: {
+        message: 'Merge branch \'release/2021.7.2\' into develop',
+      },
+    } as ResponseCommit;
+
+    expect(shouldIgnoreCommit(DEFAULT_IGNORE_REGEXS)(commit)).toEqual(true);
+  });
+
+  it('it will not ignore other commits commits by default', () => {
+    const commit = {
+      commit: {
+        message: 'The same thing we do every night, Pinky.',
+      },
+    } as ResponseCommit;
+
+    expect(shouldIgnoreCommit(DEFAULT_IGNORE_REGEXS)(commit)).toEqual(false);
+  });
+
+  it('it will ignore commits matching custom regular expressions', () => {
+    const commit = {
+      commit: {
+        message: 'The same thing we do every night, Pinky.',
+      },
+    } as ResponseCommit;
+
+    expect(shouldIgnoreCommit([/Pinky/])(commit)).toEqual(true);
+  });
+});
 
 describe('extractChangelog', () => {
   const result = 'Fixed an issue with xyz.';
@@ -248,7 +282,7 @@ describe('compareCommits', () => {
     head: 'b',
     owner: '',
     repo: '',
-    ignoreCommitPatterns: [/Merge branch 'release/],
+    ignoreCommitPatterns: DEFAULT_IGNORE_REGEXS,
   };
 
   it('throws an error if the commits are not found', async () => {

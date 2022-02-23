@@ -3,6 +3,7 @@ import { Command, createCommand } from 'commander';
 
 import {
   compareCommits,
+  DEFAULT_IGNORE_REGEXS,
   fetchChanges,
   formattedDate,
   groupChanges,
@@ -40,11 +41,10 @@ export const generateCommand = createCommand('generate')
     '--onlyShowMissing',
     'only show commits that are missing a changelog (useful for verifying we didn\'t miss one)'
   )
-  .option(
-    '--ignoreCommitPattern <commit regexps>',
-    'A comma separated list of commit regexps to ignore',
-    (input: string, previous: RegExp[]): RegExp[] => { previous.push(RegExp(input)); return previous; },
-    [],
+  .option<RegExp[]>(
+    '--ignoreCommitPattern <commit regular expressions>',
+    'A comma separated list of regular expressions used to ignore commits.  Defaults to [/Merge branch \'/] to skip empty merge commits.',
+    (input, previous = []) => [...previous, RegExp(input, 'm')],
   )
   .action(async (_, command: Command) => {
     const {
@@ -55,7 +55,7 @@ export const generateCommand = createCommand('generate')
       owner,
       releaseName,
       repo,
-      ignoreCommitPattern,
+      ignoreCommitPattern: ignoreCommitPatterns = DEFAULT_IGNORE_REGEXS,
     } = command.opts();
 
     if (!githubToken) {
@@ -70,7 +70,7 @@ export const generateCommand = createCommand('generate')
       base,
       head,
       octokit,
-      ignoreCommitPatterns: ignoreCommitPattern || [/Merge branch 'release/],
+      ignoreCommitPatterns,
     });
 
     const { changelogLines, missingChanges } = await fetchChanges({
