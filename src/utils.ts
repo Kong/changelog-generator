@@ -1,3 +1,4 @@
+import { GraphQlQueryResponseData } from '@octokit/graphql';
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
 import { any, flatten, groupBy, head, join, map, mergeAll, pipe, reduce, reject, sort, sortBy, take, toPairs, uniq } from 'ramda';
 import { compact } from 'ramda-adjunct';
@@ -5,13 +6,12 @@ import { Entries } from 'type-fest';
 
 type CompareCommitsRepoResponse = RestEndpointMethodTypes['repos']['compareCommitsWithBasehead']['response'];
 export type ResponseCommit = CompareCommitsRepoResponse['data']['commits'][0];
-export type PullsResponse = Pick<
-  RestEndpointMethodTypes['pulls']['get']['response']['data'],
-  | 'title'
-  | 'number'
-  | 'body'
-  | 'html_url'
->;
+export interface PullsResponse {
+  title: string;
+  number: number;
+  body: string;
+  url: string;
+}
 
 /** look for the first occurance of `changelog:` at the beginning of a line, case insensitive */
 export const extractChangelog = (input: string | null | undefined) => {
@@ -117,30 +117,60 @@ export const compareCommits = async ({
   }
 };
 
-export const getPull = ({
-  octokit,
-  owner,
-  repo,
-}: {
-  octokit: Octokit;
-  owner: string;
-  repo: string;
-}) => async ({ sha }: ResponseCommit) => {
-  /**
-   * !BEWARE! GitHub has a strange API behavior whereby if you send the full hash it will return different results.
-   *
-   * If you don't believe me try for yourself:
-   * > search `is:pr b2c94ebbdbcc72750d1cb415f058d49a57ca5676` on https://github.com/Kong/insomnia/pulls and then again but remove one character from the end of the hash.
-   */
-  const shortenedHash = take(10, sha);
-  const q = `org:${owner} repo:${repo} is:pr ${shortenedHash}`;
-  const pull = await octokit.search.issuesAndPullRequests({ q });
+export const getPulls = async (
+  octokit: Octokit,
+  owner: string,
+  repo: string,
+  commits: ResponseCommit[]) => {
+  // Prefix each sha when building the graphql query as aliases must start with a letter
+  const prefix = 's_';
 
-  if (pull.data.items.length > 1) {
-    throw new Error(`found multiple PRs for a commit: ${JSON.stringify({ sha, pulls: pull.data.items })}`);
-  }
+  const query = `
+    query {
+      ${
+        commits.map(commit => {
+          /**
+           * !BEWARE! GitHub has a strange API behavior whereby if you send the full hash it will return different results.
+           *
+           * If you don't believe me try for yourself:
+           * > search `is:pr b2c94ebbdbcc72750d1cb415f058d49a57ca5676` on https://github.com/Kong/insomnia/pulls and then again but remove one character from the end of the hash.
+           */
+          const sha = commit.sha;
+          const shortenedHash = take(10, sha);
+          return `
+            ${prefix}${sha}: search(query: "org:${owner} repo:${repo} is:pr ${shortenedHash}", type: ISSUE, last: 2) {
+              edges {
+                node {
+                  ... on PullRequest {
+                    title
+                    number
+                    body
+                    url
+                  }
+                }
+              }
+            }
+          `;
+        })
+      }
+    }
+  `;
 
-  return (pull.data.items[0] ?? null) as PullsResponse | null;
+  const results: GraphQlQueryResponseData = await octokit.graphql(query, {});
+
+  const prefixRegexp = new RegExp(`^${prefix}`);
+
+  return mergeAll(map(alias => {
+    const sha = alias.replace(prefixRegexp, '');
+    const prs = results[alias].edges;
+    if (prs.length > 1) {
+      throw new Error(`found multiple PRs for a commit: ${JSON.stringify({ sha, pulls: prs })}`);
+    }
+
+    return {
+      [sha]: (prs[0]?.node || null) as PullsResponse | undefined,
+    };
+  }, Object.keys(results)));
 };
 
 export interface ChangelogLine {
@@ -164,10 +194,7 @@ export const fetchChanges = async ({
   owner: string;
   repo: string;
 }) => {
-  const pullGetter = getPull({ octokit, owner, repo });
-  const pullsById = mergeAll(await Promise.all(map(async responseCommit => ({
-    [responseCommit.sha]: await pullGetter(responseCommit),
-  }), responseCommits)));
+  const pullsById = await getPulls(octokit, owner, repo, responseCommits);
 
   return reduce<ResponseCommit, FetchedChanges>(({ changelogLines, missingChanges }, responseCommit) => {
     const pull = pullsById[responseCommit.sha];
@@ -187,13 +214,13 @@ export const fetchChanges = async ({
       };
     }
 
-    if (pull !== null) {
+    if (pull) {
       // no changelog found, but there is a pull URL, so output that.
       return {
         changelogLines,
         missingChanges: [
           ...missingChanges,
-          `- ${pull.html_url} ${pull.title}`,
+          `- ${pull.url} ${pull.title}`,
         ],
       };
     }

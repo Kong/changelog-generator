@@ -9,7 +9,7 @@ import {
   formattedDate,
   getAuthorHandles,
   getChangelogLine,
-  getPull,
+  getPulls,
   groupChanges,
   PullsResponse,
   ResponseCommit,
@@ -403,19 +403,19 @@ describe('groupChanges', () => {
   });
 });
 
-describe('getPull', () => {
+describe('getPulls', () => {
   it('errors if multiple commits are found', async () => {
     const octokit = {
-      search: {
-        issuesAndPullRequests: async () => ({
-          data: { items: ['>', '1'] },
-        }),
-      },
+      graphql: async () => ({
+        's_shank redemption': {
+          edges: ['>', '1']
+        },
+      })
     } as unknown as Octokit;
 
-    const doPull = () => getPull({ octokit, owner: '', repo: '' })({
+    const doPull = () => getPulls(octokit, '', '', [{
       sha: 'shank redemption',
-    } as ResponseCommit);
+    }] as ResponseCommit[]);
 
     await expect(doPull).rejects.toThrow('found multiple PRs for a commit: {"sha":"shank redemption","pulls":[">","1"]}');
   });
@@ -424,11 +424,11 @@ describe('getPull', () => {
 describe('fetchChanges', () => {
   it('can handle commits without pull request numbers', async () => {
     const octokit = {
-      search: {
-        issuesAndPullRequests: async () => ({
-          data: { items: [] },
-        }),
-      },
+      graphql: async () => ({
+        's_shank redemption': {
+          edges: []
+        },
+      })
     } as unknown as Octokit;
 
     const responseCommits = [{
@@ -453,17 +453,20 @@ describe('fetchChanges', () => {
 
   it('can handle no changelog or pull request found', async () => {
     const octokit = {
-      search: {
-        issuesAndPullRequests: async () => ({
-          data: { items: [{
-            number: 9001,
-            body: 'some non-changelog',
-            // eslint-disable-next-line camelcase -- from the GitHub API
-            html_url: 'http://example.com',
-            title: 'some PR',
-          }] },
-        }),
-      },
+      graphql: async () => ({
+        's_shank redemption': {
+          edges: [
+            {
+              node: {
+                number: 9001,
+                body: 'some non-changelog',
+                url: 'http://example.com',
+                title: 'some PR',
+              }
+            }
+          ]
+        },
+      })
     } as unknown as Octokit;
 
     const responseCommits = [{
@@ -484,17 +487,28 @@ describe('fetchChanges', () => {
 
   it('will get pull request changes', async () => {
     const octokit = {
-      search: {
-        issuesAndPullRequests: async ({ q }: { q: string }) => ({
-          data: {
-            items: [
-              q.includes('9001') ?
-                { number: 9001, body: 'changelog: they hide their finest bean!' }
-                : { number: 9002, body: 'changelog: prepare the attack!' },
-            ] as PullsResponse[],
-          },
-        }),
-      },
+      graphql: async () => ({
+        's_9001': {
+          edges: [
+            {
+              node: {
+                number: 9001,
+                body: 'changelog: they hide their finest bean!',
+              }
+            }
+          ]
+        },
+        's_9002': {
+          edges: [
+            {
+              node: {
+                number: 9002,
+                body: 'changelog: prepare the attack!',
+              }
+            }
+          ]
+        },
+      })
     } as unknown as Octokit;
 
     const responseCommits = [

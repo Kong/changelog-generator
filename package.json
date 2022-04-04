@@ -34,6 +34,7 @@
     "ramda-adjunct": "3.0.0"
   },
   "devDependencies": {
+    "@octokit/graphql": "^4.8.0",
     "@octokit/types": "^6.34.0",
     "@types/eslint": "8.4.1",
     "@types/jest": "^27.4.0",
