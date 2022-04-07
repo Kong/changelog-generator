@@ -1,4 +1,4 @@
-import { GraphQlQueryResponseData } from '@octokit/graphql';
+import type { GraphQlQueryResponseData } from '@octokit/graphql';
 import { Octokit, RestEndpointMethodTypes } from '@octokit/rest';
 import { any, flatten, groupBy, head, join, map, mergeAll, pipe, reduce, reject, sort, sortBy, take, toPairs, uniq } from 'ramda';
 import { compact } from 'ramda-adjunct';
