@@ -419,6 +419,38 @@ describe('getPulls', () => {
 
     await expect(doPull).rejects.toThrow('found multiple PRs for a commit: {"sha":"shank redemption","pulls":[">","1"]}');
   });
+
+  it('errors if multiple merged commits are found', async () => {
+    const octokit = {
+      graphql: async () => ({
+        's_shank redemption': {
+          edges: [{ node: { merged: true } }, { node: { merged: true }}]
+        },
+      })
+    } as unknown as Octokit;
+
+    const doPull = () => getPulls(octokit, '', '', [{
+      sha: 'shank redemption',
+    }] as ResponseCommit[]);
+
+    await expect(doPull).rejects.toThrow('found multiple PRs for a commit: {"sha":"shank redemption","pulls":[{"node":{"merged":true}},{"node":{"merged":true}}]}');
+  });
+
+  it('correctly handles multiple commits if one is merged', async () => {
+    const octokit = {
+      graphql: async () => ({
+        's_shank redemption': {
+          edges: [{ node: { merged: false } }, { node: { merged: true } }]
+        },
+      })
+    } as unknown as Octokit;
+
+    const result = await getPulls(octokit, '', '', [{
+      sha: 'shank redemption',
+    }] as ResponseCommit[]);
+
+    expect(result).toEqual({ 'shank redemption': { merged: true } });
+  });
 });
 
 describe('fetchChanges', () => {

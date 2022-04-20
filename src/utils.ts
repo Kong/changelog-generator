@@ -11,6 +11,7 @@ export interface PullsResponse {
   number: number;
   body: string;
   url: string;
+  merged: boolean;
 }
 
 /** look for the first occurance of `changelog:` at the beginning of a line, case insensitive */
@@ -146,6 +147,7 @@ export const getPulls = async (
                     number
                     body
                     url
+                    merged
                   }
                 }
               }
@@ -156,19 +158,26 @@ export const getPulls = async (
     }
   `;
 
-  const results: GraphQlQueryResponseData = await octokit.graphql(query, {});
+  const results = await octokit.graphql<GraphQlQueryResponseData>(query, {});
 
   const prefixRegexp = new RegExp(`^${prefix}`);
 
   return mergeAll(map(alias => {
     const sha = alias.replace(prefixRegexp, '');
-    const prs = results[alias].edges;
+    const prs: { node?: PullsResponse }[] = results[alias].edges;
     if (prs.length > 1) {
+      const filteredPRs = prs.filter(({ node }) => node?.merged);
+      if (filteredPRs.length === 1) {
+        return {
+          [sha]: filteredPRs[0].node,
+        };
+      }
+
       throw new Error(`found multiple PRs for a commit: ${JSON.stringify({ sha, pulls: prs })}`);
     }
 
     return {
-      [sha]: (prs[0]?.node || null) as PullsResponse | undefined,
+      [sha]: (prs[0]?.node || null) as PullsResponse | undefined | null,
     };
   }, Object.keys(results)));
 };
